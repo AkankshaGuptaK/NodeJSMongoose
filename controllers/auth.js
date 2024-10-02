@@ -5,11 +5,10 @@ exports.getLogin = (req, res, next) => {
   // const isLoggedIn = req.get('Cookie').split(';')[1]?.trim().split('=')[1];
   const isLoggedIn = req.session.isLoggedIn;
   let message = req.flash("error");
-  if(message.length>0){
-    message= message[0];
-  }
-  else{
-    message = null
+  if (message.length > 0) {
+    message = message[0];
+  } else {
+    message = null;
   }
   res.render("auth/login", {
     path: "/login",
@@ -59,11 +58,10 @@ exports.postLogout = (req, res, next) => {
 
 exports.getSignup = (req, res, next) => {
   let message = req.flash("error");
-  if(message.length>0){
-    message= message[0];
-  }
-  else{
-    message = null
+  if (message.length > 0) {
+    message = message[0];
+  } else {
+    message = null;
   }
   res.render("auth/signup", {
     path: "/signup",
@@ -102,4 +100,18 @@ exports.postSignup = (req, res, next) => {
         });
     })
     .catch((err) => console.log(err));
+};
+
+exports.getReset = (req, res, next) => {
+  let message = req.flash("error");
+  if (message.length > 0) {
+    message = message[0];
+  } else {
+    message = null;
+  }
+  res.render("auth/reset", {
+    path: "/reset",
+    pageTitle: "Reset Password",
+    errorMessage: message,
+  });
 };

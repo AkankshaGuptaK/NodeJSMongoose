@@ -6,15 +6,21 @@ exports.getAddProduct = (req, res, next) => {
     pageTitle: "Add Product",
     path: "/admin/add-product",
     editing: false,
-    isAuthenticated: isLoggedIn
+    isAuthenticated: isLoggedIn,
   });
 };
 
 exports.postAddProduct = (req, res, next) => {
   const title = req.body.title;
-  const imageUrl = req.body.imageUrl;
+  const image = req.image;
   const price = req.body.price;
   const description = req.body.description;
+  if (!image) {
+    throw new Error("Attached file is not an image");
+  }
+
+  const imageUrl = image.path;
+
   const product = new Product({
     title: title,
     price: price,
@@ -52,37 +58,49 @@ exports.getEditProduct = (req, res, next) => {
         path: "/admin/edit-product",
         editing: editMode,
         product: product,
-        isAuthenticated: isLoggedIn
+        isAuthenticated: isLoggedIn,
       });
     })
-    .catch((err) => console.log(err));
+    .catch((err) => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };
 
 exports.postEditProduct = (req, res, next) => {
   const prodId = req.body.productId;
   const updatedTitle = req.body.title;
   const updatedPrice = req.body.price;
-  const updatedImageUrl = req.body.imageUrl;
+  const image = req.img;
   const updatedDesc = req.body.description;
+  // if (!image) {
+  //   throw new Error("Attached file is not an image");
+  // }
 
   Product.findById(prodId)
     .then((product) => {
+      if (product.userId.toString() !== req.user._id.toString()) {
+        return res.redirect("/");
+      }
       product.title = updatedTitle;
       product.price = updatedPrice;
       product.description = updatedDesc;
-      product.imageUrl = updatedImageUrl;
-      return product.save();
-    })
-    .then((result) => {
-      console.log("UPDATED PRODUCT!");
-      res.redirect("/admin/products");
+      if (image) {
+        const imageUrl = image.path;
+        product.imageUrl = imageUrl;
+      }
+      return product.save().then((result) => {
+        console.log("UPDATED PRODUCT!");
+        res.redirect("/admin/products");
+      });
     })
     .catch((err) => console.log(err));
 };
 
 exports.getProducts = (req, res, next) => {
   const isLoggedIn = req.session.isLoggedIn;
-  Product.find()
+  Product.find({ userId: req.user._id })
     // .select("title price -_id")
     // .populate("userId", "name")
     .then((products) => {
@@ -90,7 +108,7 @@ exports.getProducts = (req, res, next) => {
         prods: products,
         pageTitle: "Admin Products",
         path: "/admin/products",
-        isAuthenticated: isLoggedIn
+        isAuthenticated: isLoggedIn,
       });
     })
     .catch((err) => console.log(err));
@@ -98,7 +116,8 @@ exports.getProducts = (req, res, next) => {
 
 exports.postDeleteProduct = (req, res, next) => {
   const prodId = req.body.productId;
-  Product.findByIdAndDelete(prodId)
+  // Product.findByIdAndDelete(prodId)
+  Product.deleteOne({ _id: prodId, userId: req.user._id })
     .then(() => {
       console.log("DESTROYED PRODUCT");
       res.redirect("/admin/products");
